@@ -24,6 +24,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 # Create your views here.
 class Register(APIView):
@@ -46,6 +48,7 @@ class Register(APIView):
 
 
 # Login View - Authenticate user and provide JWT
+@method_decorator(csrf_exempt, name='dispatch')
 class Login(APIView):
     permission_classes = [AllowAny]
 
@@ -91,7 +94,7 @@ class Logout(APIView):
 
 # Token Verification - Check if the provided token is valid
 class VerifyToken(APIView):
-    permission_classes = []
+    permission_classes = [AllowAny]
 
     def get(self, request):
         try:
@@ -145,6 +148,8 @@ class ProductView(APIView):
         return Response(serializer.data)
 
     def put(self, request, productId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         product = get_object_or_404(Product, id=productId)
         serializer = ProductSerializer(instance=product, data=request.data, partial=True)
         if serializer.is_valid():
@@ -153,6 +158,8 @@ class ProductView(APIView):
         return Response({"Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, productId):
+        if not self.request.user.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         product = get_object_or_404(Product, id=productId)
         product.delete()
         return Response({'Product Succesfully Deleted'}, status=status.HTTP_204_NO_CONTENT)
@@ -170,6 +177,8 @@ class MessageList(ListCreateAPIView):
         return Message.objects.all().order_by("id")
     
     def perform_create(self, serializer):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         serializer.save()
 
 class MessageView(APIView):
@@ -181,6 +190,8 @@ class MessageView(APIView):
         return Response(serializer.data)
 
     def put(self, request, messageId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         message = get_object_or_404(Message, id=messageId)
         serializer = MessageSerializer(message, data=request.data, partial=True)
         if serializer.is_valid():
@@ -189,6 +200,8 @@ class MessageView(APIView):
         return Response({'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, messageId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         message = get_object_or_404(Message, id=messageId)
         message.delete()
         return Response({'Message Succesfully Deleted'}, status=status.HTTP_204_NO_CONTENT)
@@ -214,6 +227,8 @@ class OrderList(ListCreateAPIView):
         return queryset
     
     def perform_create(self, serializer):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         serializer.save()
 
 class OrderView(APIView):
@@ -225,6 +240,8 @@ class OrderView(APIView):
         return Response(serializer.data)
 
     def put(self, request, orderId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         order = get_object_or_404(Order, id=orderId)
         serializer = OrderSerializer(order, data=request.data, partial=True)
         if serializer.is_valid():
@@ -233,6 +250,8 @@ class OrderView(APIView):
         return Response({'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request, orderId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         order = get_object_or_404(Order, id=orderId)
         order.delete()
         return Response({'Order Succesfully Deleted'}, status=status.HTTP_204_NO_CONTENT)
@@ -248,6 +267,8 @@ class OrderItemList(ListCreateAPIView):
         return OrderItem.objects.all().order_by("id")
     
     def perform_create(self, serializer):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         serializer.save()
 
 class OrderItemView(APIView):
@@ -265,12 +286,16 @@ class ImageList(ListCreateAPIView):
     queryset = Image.objects.all()
     
     def perform_create(self, serializer):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         serializer.save()
 
 class ImageView(APIView):
     permission_classes = [AllowAny]
 
     def put(self, request, imageId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         image = get_object_or_404(Image, id=imageId)
         serializer = ImageSerializer(image, data=request.data, partial=True)
         if serializer.is_valid():
@@ -279,6 +304,8 @@ class ImageView(APIView):
         return Response({'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, imageId):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied("Only admins can create products.")
         image = get_object_or_404(Image, id=imageId)
         image.delete()
         return Response({'Image Succesfully Deleted'}, status=status.HTTP_204_NO_CONTENT)

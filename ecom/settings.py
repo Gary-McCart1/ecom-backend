@@ -157,3 +157,6 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # or wherever your frontend runs
 ]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",  # Add frontend URL here
+]

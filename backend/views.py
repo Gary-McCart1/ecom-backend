@@ -28,8 +28,9 @@ from django.views.decorators.csrf import csrf_exempt
 import stripe
 import json
 from django.http import JsonResponse
+import os
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
 
 # Create your views here.

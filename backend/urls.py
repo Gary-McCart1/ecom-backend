@@ -23,5 +23,10 @@ urlpatterns = [
 
     path('images/', views.ImageList.as_view()),
 
-    path('cumulative-monthly-stats/', views.cumulative_monthly_stats)
+    path('reviews/', views.ReviewList.as_view()),
+    path('reviews/<int:productId>/', views.ProductReviewView.as_view()),
+
+
+    path('cumulative-monthly-stats/', views.cumulative_monthly_stats),
+    path('create-checkout-session/', views.create_checkout_session, name='create-checkout-session'),
 ]

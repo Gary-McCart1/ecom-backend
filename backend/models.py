@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from decimal import Decimal
 from django.utils import timezone
+from ckeditor.fields import RichTextField
 # Create your models here.
     
 class Product(models.Model):
@@ -16,8 +17,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     originalPrice = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     stock = models.IntegerField(validators=[MinValueValidator(0)])
-    rating = models.FloatField(validators=[MinValueValidator(0), MaxValueValidator(5)])
-    description = models.CharField(max_length=100000)
+    description = RichTextField()
     cogs = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))], default=0)
 
     def __str__(self):
@@ -70,3 +70,11 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"Order: {self.order.id} - {self.product} x{self.quantity}"
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_reviews')
+    rating = models.FloatField(validators=[MinValueValidator(0), MaxValueValidator(5)])
+    review = models.CharField(max_length=10000)
+
+    def __str__(self):
+        return f"{self.product} rating: {self.rating}"

@@ -1,5 +1,4 @@
-from django.shortcuts import render
-from .serializers import RegisterSerializer, LoginSerializer, ProductSerializer, MessageSerializer, OrderSerializer, OrderItemSerializer, ImageSerializer
+from .serializers import ProductSerializer, MessageSerializer, OrderSerializer, OrderItemSerializer, ImageSerializer, ReviewSerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser, DjangoModelPermissionsOrAnonReadOnly
 from django.contrib.auth.models import User
@@ -10,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework.generics import ListCreateAPIView
 from django.db.models import Q
-from .models import Product, Message, Order, OrderItem, Image
+from .models import Product, Message, Order, OrderItem, Image, Review
 from rest_framework.exceptions import PermissionDenied, AuthenticationFailed
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
@@ -26,6 +25,12 @@ from django.contrib.auth import authenticate
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+import stripe
+import json
+from django.http import JsonResponse
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
 
 # Create your views here.
 class Register(APIView):
@@ -130,7 +135,7 @@ class ProductList(ListCreateAPIView):
         queryset = Product.objects.all()
 
         if search_query:
-            queryset = queryset.filter(title__icontains=search_query)
+            queryset = queryset.filter(category__icontains=search_query)
 
         return queryset
     
@@ -209,7 +214,7 @@ class MessageView(APIView):
 
 # Orders
 class OrderList(ListCreateAPIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
     serializer_class = OrderSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['id', 'total', 'name', 'status', 'date']  # fields users can order by
@@ -227,8 +232,6 @@ class OrderList(ListCreateAPIView):
         return queryset
     
     def perform_create(self, serializer):
-        if not self.request.user.is_superuser:
-            raise PermissionDenied("Only admins can create products.")
         serializer.save()
 
 class OrderView(APIView):
@@ -241,7 +244,7 @@ class OrderView(APIView):
 
     def put(self, request, orderId):
         if not self.request.user.is_superuser:
-            raise PermissionDenied("Only admins can create products.")
+            raise PermissionDenied("Only admins can edit orders.")
         order = get_object_or_404(Order, id=orderId)
         serializer = OrderSerializer(order, data=request.data, partial=True)
         if serializer.is_valid():
@@ -273,7 +276,7 @@ class OrderItemList(ListCreateAPIView):
 
 class OrderItemView(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
-    def get(self, requst, orderId):
+    def get(self, request, orderId):
         orderItem = OrderItem.objects.filter(order=orderId)
         serializer = OrderItemSerializer(orderItem, many=True)
         return Response(serializer.data)
@@ -309,6 +312,30 @@ class ImageView(APIView):
         image = get_object_or_404(Image, id=imageId)
         image.delete()
         return Response({'Image Succesfully Deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+class ReviewList(ListCreateAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = ReviewSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['id']
+
+    def get_queryset(self):
+        return Review.objects.all().order_by('-id')
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+class ProductReviewView(APIView):
+    permission_classes = [AllowAny]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['id']
+    def get(self, request, productId):
+        reviews = Review.objects.filter(product__id=productId).order_by('-id')
+        if not reviews.exists():
+            return Response({"detail": "No reviews found for this product."}, status=404)
+
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
     
 
 @api_view(['GET'])
@@ -340,6 +367,42 @@ def cumulative_monthly_stats(request):
         })
 
     return Response(cumulative_data)
+
+
+@csrf_exempt
+def create_checkout_session(request):
+    try:
+        body = request.body.decode('utf-8')
+        data = json.loads(body)
+        cart_items = data.get('items', [])
+
+        line_items = [
+            {
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': item['product']['name'],
+                    },
+                    'unit_amount': item['product']['price'],
+                },
+                'quantity': item['quantity'],
+            }
+            for item in cart_items
+        ]
+
+        # Create a Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url='http://localhost:4000/success/',
+            cancel_url='http://localhost:4000/cancel/',
+        )
+
+        return JsonResponse({'url': checkout_session.url})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
 
     
 

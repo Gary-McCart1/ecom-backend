@@ -3,7 +3,9 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
-from .models import Product, Message, Order, OrderItem, Image
+from .models import Product, Message, Order, OrderItem, Image, Review
+
+import statistics
 
 ## LOGIN SERIALIZERS
 
@@ -61,11 +63,19 @@ class ImageSerializer(serializers.ModelSerializer):
         instance.url = validated_data.get('url', instance.url)
         instance.product = validated_data.get('product', instance.product)
 
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = "__all__"
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
+    product_reviews = ReviewSerializer(many=True)
+    rating = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
-        fields = ["id", "name", "category", "price", "originalPrice", "stock", "rating", "cogs", "description", "images"]
+        fields = ["id", "name", "category", "price", "originalPrice", "stock", "rating", "cogs", "description", "images", "product_reviews"]
     
     def create(self, validated_data):
         images_data = validated_data.pop('images', [])
@@ -99,6 +109,13 @@ class ProductSerializer(serializers.ModelSerializer):
                     # Create new image if no 'id' is present
                     Image.objects.create(product=instance, **image_data)
         return instance
+    
+    def get_rating(self, obj):
+        reviews = obj.product_reviews.all()
+        if not reviews:
+            return None
+        ratings = [review.rating for review in reviews]
+        return round(sum(ratings) / len(ratings), 1)
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -117,23 +134,34 @@ class MessageSerializer(serializers.ModelSerializer):
         return instance
 
 class OrderSerializer(serializers.ModelSerializer):
-    products = ProductSerializer(many=True, read_only=True)
+    products = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Product.objects.all()
+    )
+
     class Meta:
         model = Order
-        fields = ["id", "name", "email", "address", "phone", "date", "status", "shippingMethod", "trackingNumber", "total", "products"]
+        fields = [
+            "id", "name", "email", "address", "phone", "date", "status",
+            "shippingMethod", "trackingNumber", "total", "products"
+        ]
+
+    def create(self, validated_data):
+        products = validated_data.pop('products')
+        order = Order.objects.create(**validated_data)
+        order.products.set(products)
+
+        return order
 
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.email = validated_data.get('email', instance.email)
-        instance.address = validated_data.get('address', instance.address)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.date = validated_data.get('date', instance.date)
-        instance.status = validated_data.get('status', instance.status)
-        instance.shippingMethod = validated_data.get('shippingMethod', instance.shippingMethod)
-        instance.trackingNumber = validated_data.get('trackingNumber', instance.trackingNumber)
-        instance.total = validated_data.get('total', instance.total)
+        products = validated_data.pop('products', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
         instance.save()
+
+        if products is not None:
+            instance.products.set(products)
+
         return instance
     
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -141,5 +169,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ["id", "quantity", "order", "product"]
+
 
 

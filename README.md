@@ -1,5 +1,7 @@
 # 🛒 E-commerce Backend API (Django + DRF)
 
+Youtube Demo Link: 
+
 This is the backend API for a full-featured e-commerce application built using **Django** and the **Django REST Framework (DRF)**. It provides core functionality for both the customer-facing store and the admin dashboard.
 
 The API handles user authentication (via **Simple JWT** stored in **HttpOnly cookies**), product and order management, and support for admin features like message viewing. It integrates seamlessly with:

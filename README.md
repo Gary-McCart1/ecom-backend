@@ -40,6 +40,12 @@ Use this test user to interact with the API or connected frontends:
 
 ---
 
+## Future Improvements
+
+- ** Photo file uploads so images are not uploaded using URLs but files instead.
+- ** Implement Docker with the other applications
+- ** Implement a homepage for better accessibility to endpoints
+
 ## 📬 Contact Info
 
 For questions, contributions, or support:

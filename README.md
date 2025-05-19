@@ -44,7 +44,7 @@ Use this test user to interact with the API or connected frontends:
 
 ## Future Improvements
 
-- ** Photo file uploads so images are not uploaded using URLs but files instead.
+- ** Support direct photo file uploads so that images are stored and managed by the API (e.g., using AWS S3), instead of relying on external image URLs.
 - ** Implement Docker with the other applications
 - ** Implement a homepage for better accessibility to endpoints
 

@@ -11,6 +11,22 @@ The API handles user authentication (via **Simple JWT** stored in **HttpOnly coo
 
 ---
 
+## Endpoints
+- /admin/: Access to django admin page.
+- /api/token/ and /api/refresh/: allows a user to log in with their username and password and get an access token and refresh token
+- /api/: Access to data for following routes:
+  - /login/ - POST Request for logging in
+  - /logout/ - POST Request for logging out
+  - /products/: CRUD operations for products
+  - /orders/: CRUD operations for orders
+  - /messages/: CRUD operations for messages
+  - /orderitems/: View items involved in each order
+  - /reviews/: View and create reviews for products
+  - /images/: View and create images for products
+  - /cumulative-monthly-stats/: View monthly sales data
+  - /create-checkout-session/: Stripe checkout integration
+---
+
 ## 🚀 Features
 
 - ✅ Simple JWT authentication using HttpOnly cookies  
